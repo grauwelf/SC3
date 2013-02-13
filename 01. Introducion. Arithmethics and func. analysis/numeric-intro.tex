@@ -22,8 +22,13 @@
 \item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
 \newenvironment{remark}[1][Замечание.]{\begin{trivlist}
 \item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
-\newenvironment{problem}[1][Задача.]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newcounter{problem}[subsection]
+
+\newenvironment{problem}[1][Задача \arabic{section}.\arabic{subsection}.\arabic{problem}.]
+{\addtocounter{problem}{1}
+\begin{trivlist}
+	\item[\hskip \labelsep {\bfseries #1}]}
+{\end{trivlist}}
 
 \newcommand{\qed}{\nobreak \ifvmode \relax \else
       \ifdim\lastskip<1.5em \hskip-\lastskip
@@ -155,7 +160,7 @@
 	знака, $x = 0.5236$. Суммируя члены ряда, большие $10^{-4}$, получим 
 	$\sin(0.5236) = 0.5000$. 
 	
-	Пусть теперь $x = 25.66\,(1470\textdegree)$. Если вычисления производить с
+	Пусть теперь $x = 25.66\,(1470^{\circ})$. Если вычисления производить с
 	восемью значащими цифрами,  получим $\sin(25.25) \approx 24$, что невозможно
 	по определению функции синус.
 	

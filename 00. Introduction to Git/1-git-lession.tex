@@ -1,0 +1,284 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[cp1251]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb,amsfonts,textcomp}
+%\usepackage[top=2cm, bottom=2cm, marginparwidth=0pt, left=3cm, right=1.5cm]{geometry}
+\usepackage[top=2cm, bottom=2cm, marginparwidth=0pt, left=3cm, right=2.5cm]{geometry}
+\usepackage{multirow}
+
+% List styles
+\newcommand\liststyleWWviiiNumxxxix{%
+\renewcommand\theenumi{\bf\arabic{enumi}.}
+\renewcommand\theenumii{\bf\arabic{enumi}\alph{enumii}}
+\renewcommand\theenumiii{\arabic{enumi}.\arabic{enumii}.\alph{enumiii}}
+\renewcommand\theenumiv{\arabic{enumi}.\arabic{enumii}.\alph{enumiii}.\arabic{enumiv}}
+\renewcommand\labelenumi{\theenumi}
+\renewcommand\labelenumii{\theenumii.}
+\renewcommand\labelenumiii{\theenumiii.}
+\renewcommand\labelenumiv{\theenumiv}
+}
+
+\begin{document}
+\liststyleWWviiiNumxxxix
+\pagestyle{empty}
+\centerline{\LARGE{\bf Разработка научных приложений}}
+\centerline{\Large{Локальная работа с Git}}
+~\\\\
+
+Выполнение заданий, предлагаемых ниже, поможет освоить основы работы
+с системой контроля версий Git. Крайне рекомендуется при работе над заданиями
+использовать консольный файловый менеджер Far или подобный ему.
+
+\begin{enumerate}
+\item {\bf Начало работы} 
+
+	Чтобы проверить, какая версия Git установлена на машине, в командной строке Windows
+	введите следующую команду.
+	\begin{verbatim}
+		>> git --version
+	\end{verbatim}
+	Если Git не установлен, необходимо его установить. Для этого скачайте 
+	установочный файл по адресу http://git-scm.com/downloads . После этого
+	запустите его и следуйте инструкциям. Установка требует прав администратора.
+
+	После установки необходимо <<представиться>> Git: указать имя пользователя
+	и его адрес электронной почты. Для этого используется команда {\bf git config}:
+	\begin{verbatim}
+		>> git config --global user.name 'John Doe'
+		>> git config --global user.email johndoe@example.com
+	\end{verbatim}
+	Чтобы узнать, что означает опция {\bf --global}, воспользуйтесь справкой Git:
+	\begin{verbatim}
+		>> git config --help
+	\end{verbatim}
+
+\item {\bf Фиксация изменений. Коммиты}
+
+	Создайте новую директорию и инициализируйте git-репозиторий:
+	\begin{verbatim} 
+		>> mkdir mygit
+		>> cd mygit/
+		>> git init
+		Initialized empty Git repository in .git/
+		>>  
+	\end{verbatim}
+
+	Просмотрите теперь содержимое директории {\bf .git}. Она является скрытой и
+	по умолчанию не будет видна в Проводнике Windows. Попробуйте разобраться в 
+	структуре поддиректорий и содержимом конфигурационного файла.
+	
+	Теперь немного заполните директорию {\bf mygit}. Создайте файл {\bf foo.txt} c
+	текстом
+	\begin{verbatim} 
+	1
+	2
+	3
+	4
+	5
+	\end{verbatim}
+	и скопируйте его в поддиректорию {\bf ./bar} (ее тоже вначале надо создать).
+	Чтобы узнать, что по поводу ваших действий думает Git, используйте команду 
+	{\bf git status}. Попробуйте разобраться в полученной информации.
+
+	Теперь заставьте Git контролировать изменения в репозитории:
+	\begin{verbatim} 
+	>> git add .
+	>> git status
+	\end{verbatim}
+	Сравните результаты предыдущей команды {\bf git status} и последней.
+	Объясните, что произошло.
+
+	Сделайте первый коммит:
+
+	\begin{verbatim}
+	>> git commit -a -m "Первый коммит"
+	Created initial commit 24479dd: init
+	 2 files changed, 12 insertions(+), 0 deletions(-)
+	  create mode 100644 bar/foo.txt
+	  create mode 100644 foo.txt
+	\end{verbatim}
+
+	Обратите внимание на опцию {\bf -m}. То, что следует за ней --- комментарий к
+	коммиту. Он обязателен и, если его не ввести, Git откроет стандартный текстовый
+	редактор ОС (в случае Windows это будет notepad.exe) и заставит записать комментарий в нем.
+	Проверьте это:
+	\begin{verbatim}
+	>> git commit -a 
+	\end{verbatim}
+	
+	Команда {\bf git show} покажет, что произошло в последний момент:
+
+	\begin{verbatim}
+	   >> git show
+	\end{verbatim}
+
+	Попытайтесь интерпретировать результат выполнения этой команды.
+
+	Теперь немного измените содержимое файла {\bf foo.txt} и создайте
+	новый файл {\bf bar.txt}, введя в него тот же текст, что и был раньше в {\bf foo.txt}.
+
+	Изучите результат выполнения следующих команд (подсказка: diff --- сокращение от difference):
+	\begin{verbatim}    
+	   git diff
+	   git diff --cached
+	\end{verbatim}
+
+	Используйте встроенную справку, чтобы понять, в чем разница между командами.
+
+	Теперь сделайте новый коммит, чтобы зафиксировать изменения в репозитории.
+
+\item {\bf Метки и gitk} 
+
+	Если в репозитории были сделаны важные изменения, то хотелось бы каким-то образом
+	{\bf пометить} соответствующий коммит, чтобы потом было просто к нему вернуться.
+	Для этого в Git используется команда {\bf git tag}, которая позволяет присвоить {\bf метку}
+	(tag) коммиту.
+
+	Проверьте при помощи {\bf git status} состояние репозитория и, если все изменения сохранены,
+	присвойте последнему коммиту метку <<init>>. Как это сделать, узнайте при помощи встроенной справки
+	по команде {\bf git tag}. 
+
+	После этого сделайте любые изменения в содержимом репозитория. Закоммитьте их и присвойте этому
+	коммиту метку <<second>>. Разберитесь в результате команды
+	\begin{verbatim}    
+	   >> git diff init..second
+	\end{verbatim}    
+
+	Теперь примените команду, которая осуществляет одну из главных функций любой системы
+	контроля версий --- откат изменений к заданному состоянию. 
+
+	\begin{verbatim}    
+	   >> git checkout init
+	\end{verbatim}    
+
+	Проверьте файлы в рабочей директории. В каком они состоянии, какому коммиту 
+	это состояние соответствует? Что будет, если <<откатиться>> к коммиту second? 
+	Проверьте ваши предположения.
+	
+	Разумеется, держать в голове всю информацию о коммитах (даже только важных)
+	занятие бессмысленное. Git располагает утилитой {\bf gitk}, которая в сравнительно
+	удобной форме представляет эту информацию. Попробуйте разобраться в том, что
+	показывает эта программа:
+	    
+	\begin{verbatim}
+	   >> gitk
+	\end{verbatim}
+
+	Совпадает ли то, что вы видите, с тем, как вы представляли себе собственные
+	действия в репозитории до этого?
+
+\item {\bf Ветки и операция слияния}
+
+   	Сначала создадим свежий репозиторий и наполним его содержимым:
+	\begin{verbatim}
+	>> rmdir /S mygit
+	>> mkdir mygit
+	>> cd mygit
+	>> git init
+	\end{verbatim}
+	Создайте те же два файла и поддиректорию {\bf bar}, что и раньше.
+	Зафиксируйте изменения:
+	\begin{verbatim}
+	>> git add .
+	>> git commit -a -m "Первый коммит"
+	\end{verbatim}
+
+	Теперь познакомимся с другим основным понятием Git --- веткой.
+	Для начала под веткой можно понимать последовательность состояний
+	содержимого репозитория. Создадим ветку {\bf fix} (как будто 
+	возникла необходимость что-то исправить в коде, <<пофиксить>>).
+	\begin{verbatim}
+	>> git branch fix
+	\end{verbatim}
+	Если последнюю команду запустить без аргумента, она покажет
+	список имеющихся веток.
+
+	Теперь переключимся на созданную ветку.
+	\begin{verbatim}
+	>> git checkout fix
+	>> git branch
+	\end{verbatim}
+	Как изменился результат вывода команды  {\bf git branch}?
+	Подумайте, в какую ветку <<истории>> кода пойдет следующий коммит?
+
+	Сделайте какие-нибудь изменения (например, создайте новый файл)
+	в ветке {\bf fix} и закоммитьте их. Представьте мысленно, как
+	соотносится между собой содержимое двух веток.
+	   
+	Теперь вернемся к основной ветке {\bf master}:
+	\begin{verbatim}
+	>> git checkout master
+	\end{verbatim}
+	Просмотрите директорию. Видите ли вы те изменения, которые сделали
+	в ветке {\bf fix}? 
+
+	Выполните еще одну основную операцию --- {\bf слияние}.
+	\begin{verbatim}
+	>> git merge fix
+	\end{verbatim}
+	Просмотрите опять поддиректорию. В каком состоянии ее содержимое?
+	Попробуйте объяснить себе, как происходит слияние. При работе с системами
+	контроля версий всегда важно понимать, что и как происходит с различными
+	цепочками состояний в разных ветках. Обычно при разработке приложений используется
+	несколько веток: одна для стабильной версии программы, другая для 
+	внедрения новых возможностей, третья для исправления багов и т.п.
+	    
+%	\begin{verbatim}
+%	   rm -rf mygit
+%	   mkdir mygit
+%	   cd mygit
+%	   git init
+%	   echo -e '1\n2\n3\n4\n5\n' > foo.txt
+%	   git add .
+%	   git commit -a -m "init"
+%
+%	   git branch fix
+%	   git checkout fix
+%
+%	   echo -e "3i\nX\n.\nw\nq\n" | ed foo.txt
+%	   git commit -a -m "fix1"
+%
+%	   git checkout master
+%	   echo -e "3i\nY\n.\nw\nq\n" | ed foo.txt
+%	   git commit -a -m "Y"
+%	   git merge fix
+%	\end{verbatim}
+
+%	   Launch "gitk" to observe exactly in which state you are...
+%	   Try to commit... what happen ? is it normal ?
+%	   Resolve this conflict (check the doc to do that...) and finally commit the result...
+%	   Modify this script and test others concurrent behavior :
+%	   Insert||Insert at the same position with the same content...
+%	   Insert||delete at the same position in a file
+%	   mkfile||mkfile with the same name
+%	   mkdir||mkdir with the same name
+%	   mkdir||mkfile with the same name
+%	   rmfile("a.txt")||insert("a.txt")
+%	   rmdir(/)||Insert(/a.txt), one delete a directory and another modify a file inside this directory...
+%	   move(/a,/b)||move(/a,/c) (use git-mv to do that...)
+%	   We have basically to check all combinations...
+
+\item {\bf Домашнее задание}
+
+	Установите и настройте Git на своей домашней машине. Создайте репозиторий,
+	в котором под управление Git проделайте следующие действия:
+	\begin{enumerate}
+		\item Напишите на Octave скрипт, реализующий метод деления отрезка пополам
+			для нахождения точки минимума функции одной переменной. При этом постарайтесь
+			за время написания кода сделать несколько коммитов, не скупясь на поясняющий
+			комментарий к нему. Просматривайте, как изменяется <<история кода>> при помощи
+			утилиты {\bf gitk}.
+		\item Создайте ветку, в которой добавьте новую функциональность к вашему коду --- 
+			реализуйте отрисовку графика минимизируемой функции и точек
+			на оси абсцисс, являющихся последовательными приближениями 
+			в методе деления пополам. Не забывайте коммитить!
+		\item Вернитесь к главной ветке и выполните слияние. Зафиксируйте состояние репозитория,
+			запакуйте его в архив {\bf .zip} (обязательно zip !) с названием вида 
+			Фамилия\_Имя\_ДЗ1.zip (кириллицей). Отправьте его на адрес {\bf ogulenko.a.p@onu.edu.ua} .
+	\end{enumerate}
+
+\end{enumerate}
+
+
+\end{document}

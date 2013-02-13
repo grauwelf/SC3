@@ -26,8 +26,13 @@
 \item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
 \newenvironment{remark}[1][Замечание.]{\begin{trivlist}
 \item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
-\newenvironment{problem}[1][Задача.]{\begin{trivlist}
-\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newcounter{problem}[subsection]
+
+\newenvironment{problem}[1][Задача \arabic{section}.\arabic{subsection}.\arabic{problem}.]
+{\addtocounter{problem}{1}
+\begin{trivlist}
+	\item[\hskip \labelsep {\bfseries #1}]}
+{\end{trivlist}}
 \newenvironment{code}[1][Код.]{\begin{trivlist}
 \item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
 
@@ -40,6 +45,7 @@
 \providecommand{\norm}[1]{\lVert#1\rVert}
 
 \begin{document}
+\setcounter{section}{1}
 \section{Численные методы решения СЛАУ}
 Численные методы решения систем линейных алгебраических уравнений делятся на 
 прямые и итерационные. К прямым методам относят те вычислительные алгоритмы, 
@@ -238,7 +244,7 @@
 
 \begin{problem}
 	Найти точное решение системы $Ax = b$, где $A$ --- матрица Гильберта  $4\times4$:
-	\[\large
+	\[
 		\begin{pmatrix}
 			1 & \frac{1}{2} & \frac{1}{3} & \frac{1}{4} \\
 			\frac{1}{2} & \frac{1}{3} & \frac{1}{4} & \frac{1}{5} \\
@@ -256,7 +262,7 @@
 \begin{problem}
 	Решить систему уравнений $Ax=b$, где $A$ --- матрица $n\times n$ с элементами
 	$\displaystyle a_{ij} = i^{j-1}$, а $b$ --- вектор $n\times1$ с элементами 
-	$\displaystyle b_1 = n, b_i = \frac{i^{n-2}}{i-1}, i = \overline{2,n}$. Точное решение ее ---
+	$\displaystyle b_1 = n, b_i = \frac{i^n-1}{i-1}, i = \overline{2,n}$. Точное решение ее ---
 	вектор $x^* = (1, 1, \dots, 1)^T$. Рассмотрите случаи $n = 3, 7$ и $11$. Объяснить результаты.
 \end{problem}
 

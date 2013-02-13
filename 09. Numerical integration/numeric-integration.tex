@@ -1,0 +1,335 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[warn] {mathtext}
+\usepackage[cp1251]{inputenc}
+\usepackage[english, russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[top=2cm, bottom=2cm, marginparwidth=0pt, left=3cm, right=1.5cm]{geometry}
+\usepackage{wasysym}
+\usepackage{listings}
+\usepackage{pgfplots}
+
+\lstloadlanguages{Octave}
+\lstset{extendedchars=true, escapechar=|, frame = tb, }
+
+\newtheorem{theorem}{Теорема}[section]
+\newtheorem{lemma}[theorem]{Лемма}
+\newtheorem{proposition}[theorem]{Утверждение}
+\newtheorem{corollary}[theorem]{Следствие}
+
+\newenvironment{proof}[1][Доказательство.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{definition}[1][Определение.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{example}[1][Пример.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+\newenvironment{remark}[1][Замечание.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\newcounter{problem}[subsection]
+
+\newenvironment{problem}[1][Задача \arabic{section}.\arabic{subsection}.\arabic{problem}.]
+{\addtocounter{problem}{1}
+\begin{trivlist}
+	\item[\hskip \labelsep {\bfseries #1}]}
+{\end{trivlist}}
+
+\newenvironment{code}[1][Код.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\newcommand{\qed}{\nobreak \ifvmode \relax \else
+      \ifdim\lastskip<1.5em \hskip-\lastskip
+      \hskip1.5em plus0em minus0.5em \fi \nobreak
+      \vrule height0.75em width0.5em depth0.25em\fi}
+
+%\providecommand{\abs}[1]{\lvert#1\rvert}
+\providecommand{\abs}[1]{\left|#1\right|}
+\providecommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+
+\begin{document}
+
+\setcounter{section}{3}
+
+\section{Численное интегрирование. Метод Монте-Карло.}
+Все методы вычисления определенных интегралов можно разделить на две большие группы.
+Методы первой из них заменяют подынтегральную функцию более простой для интегрирования,
+но близкой к ней. При этом широко используется аддитивность интеграла, т.е. весь промежуток
+интегрирования разбивают на такие отрезки, на которых интерполяция подыинтегральной функции
+может быть получена достаточно просто без особого ущерба для точности. Методы второй группы
+тем или иным образом используют геометрический смысл интеграла --- они вычисляют площадь под кривой
+(объем, площадь поверхности и т.д. для более сложных задач). В силу непрерывного характера
+подыинтегральной функции сделать это точно за конечное число операций невозможно, но зато можно
+сравнительно просто (в смысле простоты алгоритма) получить оценку площади. Для этого используется,
+как правило, метод случайных испытаний, известный также как метод Монте-Карло.
+
+\subsection{Простейшие квадратурные формулы}
+
+В этом разделе мы ограничимся тем, что приведем наиболее простые и употребимые формулы для методов первого
+типа, формулы оценки погрешностей этих методов. Кроме того, покажем пример того, как может быть
+получена такая оценка, например, для каких-то модификаций методов.
+
+\subsubsection{Метод прямоугольников}
+Идея метода прямоугольника (точнее, методов) заключается в том, что подынтегральная функция заменяется
+кусочно-постоянной. Так, приближенное значение интеграла
+\[
+	I = \int\limits_a^b f(x) dx
+\]
+вычисляется по формулам
+\[
+	\begin{aligned}
+	I &\approx f(a)(b - a) \quad \text{--- формула левых прямоугольников} \\
+	I &\approx f(b)(b - a) \quad \text{--- формула правых прямоугольников} \\
+	I &\approx f\left(\frac{a+b}{2}\right)(b - a) \quad \text{--- формула средних прямоугольников}
+	\end{aligned}
+\]
+Смысл этих формул должен быть понятен из следующих рисунков:
+
+\begin{center}
+\begin{tikzpicture}
+	\pgfplotsset{every axis plot/.append style={line width=1.5pt}}
+	\begin{axis}[
+		width=5cm, scale only axis,
+		xlabel=x,
+		ylabel=y,
+		xtick=\empty,
+		ytick=\empty,
+		xtick={0,2},
+		extra x ticks={0.5, 1.0, 1.5},
+		extra x tick labels={$a$, $\dfrac{a+b}{2}$, $b$},
+		extra y ticks={2.456, 6.049, 1.869},
+		extra y tick labels={$f(a)$, $f\left(\dfrac{a+b}{2}\right)$, $f(b)$},
+		axis x line=middle,
+		axis y line=middle]
+		\addplot[black, thin, dashed] coordinates {
+		(0.5, 	0.0) (0.5,   8) };
+		\addplot[black, thin, dashed] coordinates {
+		(0.0,	2.456) (2.0,	2.456) };
+		\addplot[fill=gray, draw=black, opacity=0.5] coordinates {
+		(0.5, 	0.0) (0.5,   2.456) (1.5,  2.456) (1.5, 0.0)};
+		
+		\addplot[blue, ultra thick, fill=blue!80, opacity=0.5, domain=0.5:1.5] 
+			{exp(x)*cos(7*x*180/3.1415926)+4} \closedcycle;
+	\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+	\pgfplotsset{every axis plot/.append style={line width=1.5pt}}
+	\begin{axis}[
+		width=5cm, scale only axis,
+		xlabel=x,
+		ylabel=y,
+		xtick=\empty,
+		ytick=\empty,
+		xtick={0,2},
+		extra x ticks={0.5, 1.0, 1.5},
+		extra x tick labels={$a$, $\dfrac{a+b}{2}$, $b$},
+		extra y ticks={2.456, 6.049, 1.869},
+		extra y tick labels={$f(a)$, $f\left(\dfrac{a+b}{2}\right)$, $f(b)$},
+		axis x line=middle,
+		axis y line=middle]
+		\addplot[black, thin, dashed] coordinates {
+		(1.5, 	0.0) (1.5,   8) };
+		\addplot[black, thin, dashed] coordinates {
+		(0.0,	1.869) (2.0,	1.869) };
+		\addplot[fill=gray, draw=black, opacity=0.5] coordinates {
+		(1.5, 	0.0) (1.5,   1.869) (0.5,  1.869) (0.5, 0.0)};
+		
+		\addplot[blue, ultra thick, fill=blue!80, opacity=0.5, domain=0.5:1.5] 
+			{exp(x)*cos(7*x*180/3.1415926)+4} \closedcycle;
+	\end{axis}
+\end{tikzpicture}
+\begin{tikzpicture}
+	\pgfplotsset{every axis plot/.append style={line width=1.5pt}}
+	\begin{axis}[
+		width=5cm, scale only axis,
+		xlabel=x,
+		ylabel=y,
+		xtick=\empty,
+		ytick=\empty,
+		xtick={0,2},
+		extra x ticks={0.5, 1.0, 1.5},
+		extra x tick labels={$a$, $\dfrac{a+b}{2}$, $b$},
+		extra y ticks={2.456, 6.049, 1.869},
+		extra y tick labels={$f(a)$, $f\left(\dfrac{a+b}{2}\right)$, $f(b)$},
+		axis x line=middle,
+		axis y line=middle]
+		
+		\addplot[black, thin, dashed] coordinates {
+		(1.0, 	0.0) (1.0,   8) };
+		\addplot[black, thin, dashed] coordinates {
+		(0.0,	6.049) (2.0,	6.049) };
+		\addplot[fill=gray, draw=black, opacity=0.5] coordinates {
+		(0.5, 	0.0) (0.5,   6.049) (1.5,  6.049) (1.5, 0.0)};
+		
+		\addplot[blue, ultra thick, fill=blue!80, opacity=0.5, domain=0.5:1.5] 
+			{exp(x)*cos(7*x*180/3.1415926)+4} \closedcycle;
+	\end{axis}
+\end{tikzpicture}
+\end{center}
+
+Хорошо видно, как велика может быть погрешность такого приближения, если
+не учитывать характер поведения функции. Чтобы уточнить результат, можно разбить
+промежуток интегрирования на достаточно малые отрезки так, что на каждом отрезке
+формула прямоугольников будет хорошо работать. Полученные таким образом формулы
+интегрирования (иначе говорят еще квадратурные формулы) называются составными.
+Для формулы прямоугольников они выглядят следующим образом:
+\[
+	\begin{aligned}
+		I &\approx \sum\limits_{i=0}^{n-1}f(x_i)(x_{i+1} - x_i) \quad 
+			\text{--- формула левых прямоугольников} \\
+		I &\approx \sum\limits_{i=0}^{n-1}f(x_{i+1})(x_{i+1} - x_i) \quad 
+			\text{--- формула правых прямоугольников} \\
+		I &\approx \sum\limits_{i=0}^{n-1}f\left(\frac{x_{i+1}+x_i}{2}\right)(x_{i+1} - x_i) \quad 
+			\text{--- формула средних прямоугольников}
+	\end{aligned}
+\]
+
+В качестве примера покажем стандартный прием, который позволяет оценить
+погрешность квадратурной формулы. Пусть требуется оценить погрешность формулы
+средних прямоугольников. Вычислим разницу между точным и приближенным значением,
+воспользовавшись при этом разложением подынтегральной функции в ряд Тейлора. 
+Для краткости обозначим $\bar x = \dfrac{a+b}{2}$. Имеем:
+\[
+\begin{aligned}
+	E(f) &= \int\limits_a^b{f(x)dx} \,-\, I = 
+	\int\limits_a^b \left[f(\bar x) + f'(\bar{x})(x-\bar{x}) + \frac{1}{2}f''(\eta(x))(x-\bar{x})^2\right]dx 
+	- f(\bar{x})(b-a) = \\
+	&= f(\bar{x})(b-a) + \int\limits_a^b{f'(\bar{x})(x-\bar{x})}dx + 
+		\frac{1}{2}\int\limits_a^b{f''(\eta(x))(x-\bar{x})^2}dx - f(\bar{x})(b-a) = \\
+	&= f'''(\xi)\frac{(b-a)^3}{24}~.
+\end{aligned}
+\]
+Здесь $\xi \in [a, b]$ --- произвольная точка, которую мы выбираем по теореме о средней точке.
+Таким образом, чем меньше промежуток интегрирования, тем выше точность формулы. Разумеется, если
+вторая производная подынтегральной функции очень велика, то прямоугольник будет плохо приближать
+форму криволинейной трапеции под кривой. Для формул левых/правых прямоугольников аналогичным
+образом можно получить оценку погрешностей
+\[
+	E(f) = \frac{f'(\xi)}{2}(b-a)^2, \quad \xi \in [a, b]~.
+\]
+Если сетка разбиения промежутка равномерная, то можно получить простые формулы
+для оценки погрешности составных формул:
+\[\begin{aligned}
+	E(f) &= \frac{f'(\xi)}{2}(b-a)h \qquad \text{ --- левые/правые прямоугольники)},\\
+	E(f) &= \frac{f''(\xi)}{24}(b-a)h^2 \qquad \text{ --- средние прямоугольники)}.
+\end{aligned}
+\]
+
+\subsubsection{Метод трапеций}
+Более точным способом измерить площать криволинейной трапеции является
+замена функции ее кусочно-линейной аппроксимацией. Тогда вместо площади
+полоски мы будем иметь площадь трапеции и формула принимает вид
+\[
+\begin{aligned}
+	&I = \frac{f(a) + f(b)}{2}(b-a) + E(f), \\
+	&E(f) = -\frac{f''(\xi)}{12}(b-a)^3.
+\end{aligned}
+\]
+Для равномерной сетки получаем составную формулу
+\[
+\begin{aligned}
+	&I = \sum\limits_{i=0}^{n-1}\frac{f(x_i) + f(x_{i+1})}{2}(x_{i+1}-x_i) + E(f) = \\
+	&\quad \frac{h}{2}\left(f(x_0) + f(_n)\right) + \sum\limits_{i=1}^{n-1}f(x_i)h + E(f), \\ 
+	&E(f) = -\frac{f''(\xi)}{12}(b-a)h^2.
+\end{aligned}
+\]
+
+\subsubsection{Метод Симпсона}
+Наиболее часто используемый ранее при ручных расчетах метод Симпсона основан на
+аппроксимации подынтегральной функции параболой. Это позволяет повысить порядок точности
+при сравнительно малом числе вычислений.
+\[
+\begin{aligned}
+	&I = \frac{b-a}{6}\left(f(a) + f\left(\frac{a+b}{2}\right) + f(b)\right) + E(f), \\
+	&E(f) = -\frac{f^{(4)}(\xi)}{2880}(b-a)^5.
+\end{aligned}
+\]
+Для получения составной формулы Симпсона удобно отрезок разделить на четное число отрезков.
+Пусть их будет $2N$. Тогда
+\[
+\begin{aligned}
+	&I = \frac{h}{6}\left(f_0 + 4\left(f_1 + f_3 + \dots + f_{2N-1}\right) + 
+		2\left(f_2 + f_4 + \dots + f_{2n-2}\right) + f_{2N}\right) + E(f), \\
+	&E(f) = -\frac{f^{(4)}(\xi)}{2880}(b-a)h^4.
+\end{aligned}
+\]
+
+\subsection{Интегрирование методом Монте-Карло}
+Рассмотрим теперь метод интегрирования, который основан на совершенно иной идее.
+Пусть мы погрузили график функции, определенный интеграл от которой нам надо найти,
+в прямоугольник с известной шириной $b-a$ и известной высотой $H$. Площадь этого
+прямоугольника равна, как известно, $S = (b-a)H$. Если теперь начать <<забрасывать>>
+прямоугольник точками, координаты которых выбираются случайным образом, то, очевидно,
+вероятность попадания в область под кривой будет пропорциональна площади криволинейной
+трапеции. 
+\begin{center}
+\begin{tikzpicture}[dot/.style={fill=blue,circle,minimum size=1pt}]
+	\pgfplotsset{every axis plot/.append style={line width=1.5pt}}
+	\begin{axis}[
+		width=7cm, %scale only axis,
+		xlabel=x,
+		ylabel=y,
+		xtick=\empty,
+		ytick=\empty,
+		extra x ticks={0.5, 0.8, 1.5},
+		extra x tick labels={$a$, $x_i$, $b$},
+		extra y ticks={4.0, 7.0},
+		extra y tick labels={$y_i$, $H$},
+		axis x line=middle,
+		axis y line=middle]
+		
+		\addplot[black, thin, dashed] coordinates {
+		(0.8, 	0.0) (0.8, 4.0) };
+		\addplot[black, thin, dashed] coordinates {
+		(0.0,	4.0) (0.8, 4.0) };
+		\addplot[] coordinates {
+		(2.0, 0.0) (2.0, 0.0)
+		};
+		%\node[below] at (0.8, 4.0) {below};
+		\addplot[fill=gray, draw=black, opacity=0.5] coordinates {
+		(0.5, 	0.0) (0.5,   7.0) (1.5,  7.0) (1.5, 0.0)};
+		
+		\addplot[blue, ultra thick, fill=blue!80, opacity=0.5, domain=0.5:1.5] 
+			{exp(x)*cos(7*x*180/3.1415926)+4} \closedcycle;
+	\end{axis}
+\end{tikzpicture}
+\end{center}
+Таким образом, приближенное значение интеграла можно получить по формуле
+\[
+	I \approx S \times \frac{\text{количество попаданий под кривую $y=f(x)$}}{\text{общее число брошенных точек}}.
+\]
+Очевидно, чем больше будет брошено точек, тем точнее будет результат. С другой стороны, слишком
+много точек использовать тоже не следует, т.к. в этом случае нет никакого выигрыша по сравнению
+ методами предыдущего раздела - они будут требовать меньшого числа операций.
+
+Другая формулировка метода Монте-Карло заключается в том, что случайным образом
+выбираются точки $x_i$ на оси абсцисс, для которых вычисляется приближенное 
+значение интеграла по формуле прямоугольников. Затем, после некоторого числа таких
+случайных испытаний вычисляется среднее значение полученных приближений, т.е.
+\[
+	I \approx (b-a)\frac{1}{n}\sum\limits_{i=1}^nf(x_i).
+\]
+
+Несмотря на кажущуюся трудозатратность и ненадежность, метод Монте-Карло является практически
+единственным выходом, когда нужно вычислить определенные интегралы высоких размерностей.
+Например, чтобы перенести идею замены подынегральной функции на более простую на 
+случай тройного интеграла, надо провести очень большую работу по выбору этой простой формы,
+которая учитывала бы к тому же все особенности трехмерной области интегрирования.
+
+Заметим также, что для высоких размерностей второй подход в реализации метода 
+Монте-Карло оказывается более точным и экономным, в то время как для меньших 
+размерностей ситуация обратная.
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
