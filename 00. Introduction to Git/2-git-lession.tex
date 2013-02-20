@@ -1,0 +1,662 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[cp1251]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb,amsfonts,textcomp}
+%\usepackage[top=2cm, bottom=2cm, marginparwidth=0pt, left=3cm, right=1.5cm]{geometry}
+\usepackage[top=2cm, bottom=2cm, marginparwidth=0pt, left=3cm, right=2.5cm]{geometry}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows,positioning,fit,backgrounds, shapes.misc, shadows} 
+
+% List styles
+\newcommand\liststyleWWviiiNumxxxix{%
+\renewcommand\theenumi{\bf\arabic{enumi}.}
+\renewcommand\theenumii{\bf\arabic{enumi}\alph{enumii}}
+\renewcommand\theenumiii{\arabic{enumi}.\arabic{enumii}.\alph{enumiii}}
+\renewcommand\theenumiv{\arabic{enumi}.\arabic{enumii}.\alph{enumiii}.\arabic{enumiv}}
+\renewcommand\labelenumi{\theenumi}
+\renewcommand\labelenumii{\theenumii.}
+\renewcommand\labelenumiii{\theenumiii.}
+\renewcommand\labelenumiv{\theenumiv}
+}
+
+\tikzset{
+    %Define standard arrow tip
+    >=stealth',
+    %Define style for boxes
+	punkt/.style={
+        	rectangle,
+	        rounded corners,
+        	draw=black, thick,
+        	text width=8em,
+		font=\sffamily,
+        	minimum height=4em,
+        	text centered},
+	commit/.style={
+		rectangle,
+		rounded corners,
+		draw=black, thick,
+		text width=3em,
+		text opacity=1,
+		font=\sffamily,
+		minimum height=2em,
+		text centered,
+		fill=black!10!green},
+	branch/.style={
+		rectangle,
+		rounded corners,
+		draw=black, thick,
+		text width=3em,
+		text opacity=1,
+		font=\sffamily,
+		minimum height=2em,
+		text centered,
+		fill=white!40!orange},
+	heads/.style={
+		rectangle,
+		rounded corners,
+		draw=black, thick,
+		text width=3em,
+		font=\sffamily,
+		minimum height=2em,
+		text centered,
+		fill=lightgray},
+	carrow/.style={
+        	<-,
+	        very thick,
+		color=black!40!green,
+        	shorten <=2pt,
+        	shorten >=2pt},
+	barrow/.style={
+        	->,
+	        very thick,
+		color=black!40!orange,
+        	shorten <=2pt,
+        	shorten >=2pt}
+}
+
+\begin{document}
+\liststyleWWviiiNumxxxix
+\pagestyle{empty}
+\centerline{\LARGE{\bf Разработка научных приложений}}
+\centerline{\Large{Немного теории о Git. Удаленная работа c Git. Сервис Github.}}
+~\\\\
+
+Выполнение заданий, предлагаемых ниже, поможет лучше понять, как работает
+система контроля версий Git. Крайне рекомендуется при работе над заданиями
+использовать консольный файловый менеджер Far или подобный ему.
+
+\section{Как работают основные команды Git}
+
+
+Следующие четыре команды предназначены для копирования файлов между рабочей
+директорией, сценой (так же известной как <<индекс>>) и историей (представленной
+в форме коммитов).
+
+\begin{itemize}
+	\item {\bf git add <файлы>} --- копирует файлы (в их текущем состоянии)
+		на сцену.
+	\item {\bf git commit} --- сохраняет снимок сцены в виде коммита.
+	\item {\bf git reset <файлы>} --- восстанавливает файлы на сцене, а
+		именно копирует файлы из последнего коммита на сцену.
+		Используйте эту команду для отмены изменений, внесенных
+		командой git add файлы.  Вы также можете выполнить git reset
+		чтобы восстановить все файлы на сцене. 
+	\item {\bf git checkout <файлы>} --- копирует файлы со сцены в рабочую
+		директорию. Эту команду удобно использовать чтобы сбросить
+		нежелательные изменения в рабочей
+директории.  
+\end{itemize}
+Графически смысл этих действий можно изобразить следующим образом:
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	%nodes
+	\node[punkt, fill=white!40!green] (history) {История};
+	\node[punkt, fill=white!40!blue, below=1cm of history] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=1cm of stage] (workdir) {Рабочая\\ директория};
+	\path[->,thick] 
+		(history.west) 
+			edge[bend right=65] node[left] {\bf git reset <files>} 
+		(stage.west)
+		(stage.west)
+			edge[bend right=65] node[left] {\bf git checkout <files>} 
+		(workdir.west);
+	\path[<-, thick]
+		(history.east)
+			edge[bend left=65] node[right] {\bf git commit} 
+		(stage.east)
+		(stage.east)
+			edge[bend left=65] node[right] {\bf git add <files>} 
+		(workdir.east);
+	\end{tikzpicture}
+\end{center}
+
+Вы можете использовать {\bf git reset -p}, {\bf git checkout -p}, и {\bf git
+add -p} вместо (или вместе с) именами файлов, чтобы в интерактивном режиме
+выбирать, какие именно изменения будут скопированы.
+
+Также можно перепрыгнуть через сцену и сразу же получить файлы из истории прямо
+в рабочую директорию, или сделать коммит, минуя сцену.
+
+\begin{itemize}
+	\item {\bf git commit -a} --- аналогичен запуску двух команд: {\bf git
+		add} для всех файлов, которые существовали в предыдущем
+		коммите, и {\bf git commit}. 
+	\item {\bf git commit <файлы>} --- создает новый коммит, в основе
+		которого лежат уже существующие файлы, добавляя изменения
+		только для указанных файлов. Одновременно, указанные файлы
+		будут скопированы на сцену.  
+	\item {\bf git checkout HEAD \verb -- <файлы>} --- копирует файлы из
+		текущего коммита и на сцену, и в рабочую директорию.
+\end{itemize}
+Схематически это выглядит так:
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	%nodes
+	\node[punkt, fill=white!40!green] (history) {История};
+	\node[punkt, fill=white!40!blue, below=1cm of history] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=1cm of stage] (workdir) {Рабочая\\ директория};
+	\path[->,thick] 
+		(history.west) 
+			edge[bend right=65] node[left] (dummy1) {\bf git checkout HEAD} 
+		(workdir.west)
+		(dummy1.east) edge (stage.west);
+	\path[<-, thick]
+		(history.east)
+			edge[bend left=65] node[right] (dummy2) {\bf git commit -a} 
+		(workdir.east)
+		(stage.east) edge (dummy2.west);
+	\end{tikzpicture}
+\end{center}
+
+Чтобы двигаться дальше, изобразим схему внутреннего устройства истории, которую
+хранит Git. Типичная ситуация изображена на схеме ниже:
+
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	%nodes
+
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5] (master) {master};
+	\node[heads, above=0.0cm of master] (head) {HEAD};
+
+	\begin{scope}[on background layer]
+	\node[fit=(dots)(com1)(com2)(com3)(com4)(com5)(maint)(master)(head), 
+		rectangle, rounded corners, draw, fill=white!40!green] (group) {};
+	\end{scope}
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+
+	\node[left=1cm of stage, 
+		text width=6em, 
+		text centered, font=\slshape] (stage-comment) {Файлы для следующего коммита}; 
+	\node[left=1cm of workdir, 
+		text width=6em, 
+		text centered, font=\slshape] (workdir-comment) {Файлы, которые вы <<видите>>}; 
+	\node[below=1cm of com5, 
+		text width=9em, 
+		text centered, font=\slshape] (com-comment) {Коммиты,\\ идентифицируемые SHA-1 хэш-кодом}; 
+	\node[left=0.5cm of master, 
+		text width=6em, 
+		text centered, font=\slshape] (branch1) {Текущая\\ветка}; 
+	\node[above=1.5cm of maint, 
+		text width=6em, 
+		text centered, font=\slshape] (branch2) {Еще одна\\ветка}; 
+	\node[above=1.0cm of com2, 
+		text width=6em, 
+		text centered, font=\slshape] (pointer) {Ссылка на родителя}; 
+	\node[above=0.5cm of head, 
+		text width=6em, 
+		text centered, font=\slshape] (head-pointer) {Ссылка на\\ текущую ветку}; 
+	\node[above=0.2cm of group, 
+		text width=8em, 
+		text centered, font=\sffamily] (history) {История}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] node[auto] (dummy){} (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow] (com1)
+		(master) edge[barrow] (com5);
+	\path[->, very thin]
+		(stage-comment) edge (stage)
+		(workdir-comment) edge (workdir)
+		(com-comment) edge (com3)
+		(com-comment) edge (com4)
+		(com-comment) edge (com5)
+		(branch1) edge (master)
+		(branch2) edge (maint)
+		(pointer) edge (dummy)
+		(head-pointer) edge (head);
+	
+	\end{tikzpicture}
+\end{center}
+
+\subsection{Команда {\bf diff}}
+
+Как вы уже знаете из предыдущего материала, существует способ посмотреть, какие
+изменения были сделаны в разных коммитах и сравнить их между собой. Ниже на
+схеме изображены несколько простых примеров использования команды {\bf git
+diff}. К каждой из этих команд можно добавить имена файлов в качестве
+дополнительного аргумента. При этом выводится информацию об изменениях только для
+перечисленных файлов.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	%nodes
+
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5] (master) {master};
+	\node[heads, above=0.0cm of master] (head) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=1cm of stage] (workdir) {Рабочая\\ директория};
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] node[auto] (dummy){} (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow] (com1)
+		(master) edge[barrow] (com5)
+		(com2) edge[bend left=45] node {git diff da985 b325c} (com4)
+		(workdir) edge node{git diff} (stage)
+		(workdir.west) edge[bend left=30] node {git diff maint} (com1)
+		(stage.east) edge[bend right=30] node[right] {git diff --cached} (com5)
+		(workdir.east) edge[bend right=30] node[right] {git diff HEAD} (com5);
+	
+	\end{tikzpicture}
+\end{center}
+
+\subsection{Команда {\bf commit}}
+
+Когда вы делаете коммит, git создает новый объект коммита, используя файлы со
+сцены, а текущей коммит становится родителем для нового. После этого указатель
+текущей ветки перемещается на новый коммит. Вы это видите на картинке, где {\bf
+master} --- это текущая ветка. До совершения коммита {\bf master} указывал на
+коммит {\bf ed489}. После добавления нового коммита {\bf f0cec}, родителем
+которого стал {\bf ed489}, указатель ветки {\bf master} был перемещен на новый
+коммит.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	\node[commit, right=0.75cm of com5, 
+		copy shadow={shadow yshift=-1mm, shadow xshift=-1mm, opacity=0.5}] (com6) {f0cec};
+
+	\node[cross out, draw, color=black, above=0.1cm of com5] (cross) {}; 	
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=0.3, text opacity=0.3] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=0.3] (head) {HEAD};
+	\node[branch, above=0.5cm of com6] (master-new) {master};
+	\node[heads, above=0.0cm of master-new] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com3] {\tt git commit}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5)
+		(com5) edge[carrow] (com6);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(master-new) edge[barrow] (com6)
+		(com6.south) edge[bend left=20] (stage.east)
+		(head-new.north) edge[dashed, bend right=20] (head.north);
+	
+	\end{tikzpicture}
+\end{center}
+
+То же самое происходит, если одна ветка является предком другой ветки. Ниже
+показан пример нового коммита {\bf 1800b} в ветке {\bf maint}, которая является
+предком ветки {\bf master}. После этого ветка {\bf maint} уже больше не
+является предком ветки {\bf master}. И в случае необходимости объединения
+работы, проделанной в этих разделенных ветках, следует воспользоваться командой
+{\bf merge} (что более предпочтительно) или {\bf rebase}.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	\node[commit, above=0.75cm of com2, 
+		copy shadow={shadow yshift=-1mm, shadow xshift=-1mm, opacity=0.5}] (com6) {1800b};
+
+	\node[cross out, draw, color=black, above=0.1cm of com1] (cross) {}; 	
+	\node[branch, above=0.5cm of com5] (master) {master};
+	\node[branch, above=0.5cm of com1, opacity=0.3, text opacity=0.3] (maint) {maint};
+	\node[heads, above=0.0cm of maint, opacity=0.3] (head) {HEAD};
+	\node[branch, above=0.5cm of com6] (maint-new) {maint};
+	\node[heads, above=0.0cm of maint-new] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com4] {\tt git commit}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5)
+		(com1) edge[carrow] (com6);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(maint-new) edge[barrow] (com6)
+		(com6.south) edge[bend left=20] (stage.north)
+		(head-new.west) edge[dashed, bend right=20] (head.north);
+	
+	\end{tikzpicture}
+\end{center}
+
+Наконец, если вы сделали ошибку в последнем коммите, её легко исправить с помощью
+команды {\bf git commit \--\--amend}. Эта команда создает новый коммит, родителем
+которого будет родитель ошибочного коммита. Старый ошибочный коммит будет
+отброшен, конечно же если только на него не будет ещё каких-либо других ссылок,
+что маловероятно.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	\node[commit, below=0.75cm of com5, 
+		copy shadow={shadow yshift=-1mm, shadow xshift=-1mm, opacity=0.5}] (com6) {4ca87};
+
+	\node[cross out, draw, color=black, above=0.1cm of com5] (cross) {}; 	
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=0.3, text opacity=0.3] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=0.3] (head) {HEAD};
+	\node[branch, below=0.5cm of com6] (master-new) {master};
+	\node[heads, below=0.0cm of master-new] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com3] {\tt git commit \--\--amend}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5)
+		(com4) edge[carrow] (com6);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(master-new) edge[barrow] (com6)
+		(com6.west) edge[bend left=20] (stage.east)
+		(head-new.east) edge[dashed, bend right=40] (head.east);
+	
+	\end{tikzpicture}
+\end{center}
+
+\subsection{Команда {\bf checkout}}
+Команда {\bf checkout} используется для копирования файлов из истории или сцены в
+рабочую директорию. Также она может использоваться для переключения между
+ветками.
+
+Когда вы указываете имя файла (и/или ключ {\bf -p}), git копирует эти файлы из
+указанного коммита на сцену и в рабочую директорию. Например, {\bf git checkout
+HEAD~ foo.cpp} копирует файл {\bf foo.cpp} из коммита {\bf HEAD~} (предка текущего
+коммита) в рабочую директорию и на сцену. Если имя коммита не указано, то файл
+будет скопирован со сцены в рабочую директорию. Обратите внимание на то что при
+выполнении команды {\bf checkout} позиция указателя текущей ветки {\bf HEAD}
+остаётся прежней, указатель никуда не перемещается.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=1, text opacity=1] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=1] (head) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com3] {\tt git checkout HEAD\textasciitilde ~<files>}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(stage.east) edge[bend right=45] (com4.south)
+		(workdir.east) edge[bend right=45] (com4.south);
+	
+	\end{tikzpicture}
+\end{center}
+В том случае если мы не указываем имя файла, но указываем имя (локальной)
+ветки, то указатель {\bf HEAD} будет перемещен на эту ветку (мы переключимся на
+эту ветку). При этом сцена и рабочая директория будут приведены в соответствие
+с этим коммитом. Любой файл, который присутствует в новом коммите (ниже на
+схеме это {\bf a47c3}) будет скопирован из истории; любой файл, который был в
+старом коммите ({\bf ed489}), но отсутствует в новом, будет удален; любой файл,
+который не записан ни в одном коммите, будет проигнорирован.
+
+В том случае, если мы не указываем имя файла, и не указываем имя (локальной)
+ветки, а указываем тег, дистанционную (remote) ветку, SHA-1 хеш коммита или
+что-то вроде master~3, то мы получаем безымянную ветку, называемую <<detached
+HEAD>> (<<оторванная голова>>). Это очень полезная штука для если нам надо
+осмотреться в истории коммитов, т.е. временно <<окунуться>> в прошлое внутри
+ветки и не связанное с определенным файлом.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=1, text opacity=1] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=0.2] (head) {HEAD};
+	\node[heads, above=0.0cm of maint, opacity=1] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com3] {\tt git checkout maint}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(stage.west) edge[bend left=45] (com1.south)
+		(head-new.east) edge[dashed, bend left=45] (head.west)
+		(workdir.west) edge[bend left=45] (com1.south);
+	
+	\end{tikzpicture}
+\end{center}
+\vspace{48pt}
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+
+	\node[branch, above=0.5cm of com1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=1, text opacity=1] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=0.2] (head) {HEAD};
+	\node[heads, above=0.5cm of com2, opacity=1] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2cm of com3] {\tt git checkout master\textasciitilde 3}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(master) edge[barrow] (com5)
+		(stage.west) edge[bend left=45] (com2.south)
+		(head-new.east) edge[dashed, bend left=15] (head.west)
+		(com2) edge[color=darkgray] (head-new)
+		(workdir.west) edge[bend left=45] (com2.south);
+
+	
+	\end{tikzpicture}
+\end{center}
+\newpage
+\subsection{Команда {\bf merge}}
+
+Команда {\bf merge} (слияние) создает новый коммит на основе текущего коммита,
+применяя изменения других коммитов. Перед слиянием сцена должна быть приведена
+в соответствие с текущим коммитом. Самый простой случай слияния --- это когда
+другой коммит является предком текущего коммита: в этом случае ничего не
+происходит. Другой простой случай слияния --- когда текущий коммит является
+предком другого коммита: в этом случае происходит быстрая перемотка
+(fast-forward). Ссылка текущей ветки будет просто перемещена на новый коммит, а
+сцена и рабочая директория будут приведены в соответствие с новым коммитом.
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+
+	\node[cross out, draw, above=0.1cm of com1] {};
+	\node[branch, above=0.5cm of com1, opacity=0.2, text opacity=1] (maint) {maint};
+	\node[branch, above=0.5cm of com5, opacity=1] (maint-new) {maint};
+	\node[branch, below=1.0cm of com5, opacity=1] (master) {master};
+	\node[heads, above=0.0cm of maint-new, opacity=1] (head) {HEAD};
+	\node[heads, above=0.0cm of maint, opacity=0.2] (head-new) {HEAD};
+
+	\node[punkt, fill=white!40!blue, below=1cm of com3] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=0.5cm of stage] (workdir) {Рабочая\\ директория};
+	\node[above=2.8cm of com3] {\tt git merge master}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5);
+	\path[<-, thick]
+		(maint) edge[barrow]  (com1)
+		(maint-new) edge[barrow]  (com5)
+		(master) edge[barrow] (com5)
+		(head.west) edge[dashed, bend right=15] (head-new.east)
+		(workdir.east) edge[bend right=5] (com5)
+		(stage.east) edge[bend right=5] (com5);
+	
+	\end{tikzpicture}
+\end{center}
+
+Во всех других случаях выполняется <<настоящее>> слияние. Можно изменить
+стратегию слияния, но по умолчанию будет выполнено <<рекурсивное>> слияние, для
+которого будет взят текущий коммит ({\bf ed489} ниже на схеме), другой коммит
+({\bf 33104}) и их общий предок ({\bf b325c}). Для этих трех коммитов будет
+выполнено трехстороннее слияние. Результат этого слияние будет записан в
+рабочую директорию и на сцену, а также будет добавлен результирующий коммит со
+вторым родителем ({\bf 33104}).
+\begin{center}
+	\begin{tikzpicture}[node distance=1cm, auto,]
+	\node (dots) {\dots};	
+	\node[commit, right=0.75cm of dots] (com1) {a47c3};
+	\node[commit, right=0.75cm of com1] (com2) {b325c};
+	\node[commit, right=0.75cm of com2] (com3) {c10b9};
+	\node[commit, right=0.75cm of com3] (com4) {da985};
+	\node[commit, right=0.75cm of com4] (com5) {ed489};
+	\node[commit, right=0.75cm of com5, 
+		copy shadow={shadow yshift=-1mm, shadow xshift=-1mm, opacity=0.5}] (com6) {f8bc5};
+	\node[commit, above=0.5cm of com3] (com7) {2eecb};
+	\node[commit, above=0.5cm of com4] (com8) {33104};
+
+	\node[cross out, draw, above=0.5cm of com5] {};
+	\node[branch, above=0.5cm of com8] (other) {other};
+	\node[branch, above=1.5cm of com5, opacity=0.2] (maint-new) {maint};
+	\node[branch, above=0.5cm of com6, opacity=1] (master) {master};
+	\node[heads, above=0.0cm of master, opacity=1] (head) {HEAD};
+	\node[heads, above=0.0cm of maint-new, opacity=0.2] (head-new) {HEAD};
+
+	\node[below=1cm of com3, 
+		text width=7em, text centered] (3way) {3-х стороннее \\слияние};
+	\node[punkt, fill=white!40!blue, below=3cm of com4] (stage) {Сцена\\ (индекс)};
+	\node[punkt, fill=white!40!red, below=3cm of com2] (workdir) {Рабочая\\ директория};
+	\node[above=2.8cm of com3] {\tt git merge other}; 
+	
+	\path[<-, thick]
+		(dots) edge[carrow] (com1)
+		(com1) edge[carrow] (com2)
+		(com2) edge[carrow] (com3)
+		(com3) edge[carrow] (com4)
+		(com4) edge[carrow] (com5)
+		(com2) edge[carrow] (com7)
+		(com7) edge[carrow] (com8)
+		(com8) edge[carrow, bend left=15] (com6)
+		(com5) edge[carrow] (com6);
+	\path[<-, thick]
+		(maint-new) edge[barrow]  (com5)
+		(master) edge[barrow] (com6)
+		(other) edge[barrow] (com8)
+		(head.west) edge[dashed, bend right=15] (head-new.east)
+		(3way.east) edge[bend right=35] (com5)
+		(3way.west) edge[bend left=45] (com2)
+		(3way.north) edge[bend left=0] (com8)
+		(com6) edge[bend left=55] 
+			node[left, text width=6em, text centered] {Если нет конфликтов} 
+		(stage.east)
+		(workdir.north) edge[bend right=15] (3way)	
+		(stage.north) edge[bend left=15] (3way)	
+		;
+	\end{tikzpicture}
+\end{center}
+
+\end{document}
